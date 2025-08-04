@@ -6,15 +6,61 @@ class GoogleCalendarService {
     this.oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      'urn:ietf:wg:oauth:2.0:oob'
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/auth/callback'
     );
 
-    this.oauth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-    });
+    // Solo configurar credenciales si tenemos el refresh token
+    if (process.env.GOOGLE_REFRESH_TOKEN) {
+      this.oauth2Client.setCredentials({
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+      });
+    }
 
     this.calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
     this.calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  }
+
+  // Generar URL de autorización para OAuth
+  getAuthUrl() {
+    const scopes = [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/calendar.events'
+    ];
+
+    return this.oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: scopes,
+      prompt: 'consent' // Fuerza mostrar pantalla de consentimiento
+    });
+  }
+
+  // Intercambiar código de autorización por tokens
+  async getTokensFromCode(code) {
+    try {
+      const { tokens } = await this.oauth2Client.getToken(code);
+      this.oauth2Client.setCredentials(tokens);
+      
+      return {
+        success: true,
+        tokens,
+        refreshToken: tokens.refresh_token,
+        message: 'Tokens obtenidos exitosamente'
+      };
+    } catch (error) {
+      console.error('Error obteniendo tokens:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: 'Error al obtener tokens de Google'
+      };
+    }
+  }
+
+  // Verificar si la autenticación está configurada
+  isAuthenticated() {
+    return !!(process.env.GOOGLE_CLIENT_ID && 
+             process.env.GOOGLE_CLIENT_SECRET && 
+             process.env.GOOGLE_REFRESH_TOKEN);
   }
 
   async createEvent(appointmentData) {

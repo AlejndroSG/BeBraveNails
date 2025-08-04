@@ -8,6 +8,7 @@ require('dotenv').config();
 const bookingRoutes = require('./routes/bookings');
 const availabilityRoutes = require('./routes/availability');
 const contactRoutes = require('./routes/contact');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,6 +38,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
